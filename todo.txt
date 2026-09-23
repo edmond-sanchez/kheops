@@ -1,0 +1,2 @@
+# integrators:
+integrator survey, simplecticity, energy divergence vs environment complexity
