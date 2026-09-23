@@ -45,8 +45,8 @@ doi: 10.1121/1.395269
 
 @dataclass(frozen=True)
 class DownwardRefractingSSP(SoundSpeedProfile):
-    # Original parameters: depth in yards, speed in yards/s.
-    c0: float = 1677.3319
+    # obviously i converted Porter cursed units into m/s
+    c0: float = 1533.75228936  # m/s
     gamma: float = -1.2286762  # 1/s
 
     def _q(self, z: float | NDArray[np.floating]):

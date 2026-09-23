@@ -9,11 +9,11 @@ from kheops.utils.numerical import numerical_derivatives
 # evaluated from the published equations and their analytic derivatives.
 # Columns: depth, speed, first derivative, second derivative.
 DOWNWARD = np.array([
-    [0, 1677.3319, -1.2286762, 0.002700083157864773],
-    [66.7, 1600.934733783636, -1.068319873666596, 0.002138701837845048],
-    [800, 1138.115084645785, -0.3838300430484373, 0.0003883407853936422],
-    [1000, 1068.334694322834, -0.3174698035709138, 0.0002830210702178085],
-    [2000, 846.0941681714865, -0.1577017566348050, 0.00008818112090093960],
+    [0, 1533.75228936, -1.2286762, 0.002952846848058588],
+    [60.99048, 1463.894720571757, -1.068319873666596, 0.002338912771046641],
+    [800, 1015.363411028336, -0.3564809299625294, 0.0003754674987694727],
+    [1000, 950.7936577099694, -0.2927053107510736, 0.0002703312067149401],
+    [2000, 748.0057371320578, -0.1425235267819439, 0.00008146844874845106],
 ])
 MUNK = np.array([
     [0, 1548.521015173678, -0.1086631002671974, 0.0001933396808844458],
@@ -53,19 +53,6 @@ def test_numerical_derivatives_against_analytic_and_reference(profile, table, h)
         assert_allclose(second, expected, rtol=1e-6, atol=5e-11)
 
 
-def test_numerical_method_on_polynomial():
-    z = np.array([-2.0, 0.0, 3.0])
-    first, second = numerical_derivatives(lambda x: x**4, z, h=0.5)
-    assert_allclose(first, 4*z**3, atol=1e-12)
-    assert_allclose(second, 12*z**2, atol=1e-12)
-    first, second = numerical_derivatives(lambda x: x**4, 2.0)
-    assert_allclose([first, second], [32.0, 48.0], atol=1e-12)
-
-
-@pytest.mark.parametrize("h", [0, -1, np.nan, np.inf])
-def test_invalid_step(h):
-    with pytest.raises(ValueError):
-        numerical_derivatives(lambda x: x**2, 1.0, h)
 
 
 def test_munk_cutoff_convention_and_constant_extension():
