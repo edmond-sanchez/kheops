@@ -53,8 +53,6 @@ def test_numerical_derivatives_against_analytic_and_reference(profile, table, h)
         assert_allclose(second, expected, rtol=1e-6, atol=5e-11)
 
 
-
-
 def test_munk_cutoff_convention_and_constant_extension():
     p = MunkSSP()
     z = np.array([5000.0, 5001.0, 6000.0])
