@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from kheops.raytrace.hamiltonian import FlatBottomRaySystem
 from kheops.raytrace.raystate import RayState
 
 
@@ -18,9 +19,37 @@ class Stepper(ABC):
     ) -> RayState:
         pass
 
+################################################################################
+################################################################################
+################################################################################
 
+
+class EulerStepper(Stepper):
+    """Explicit Euler: first order, not symplectic."""
+    def advance(self, system: FlatBottomRaySystem, state: RayState, dr: float) -> RayState:
+        x, M = state.x, state.M
+        return RayState(
+            state.r + dr,
+            x + dr * system.vector_field(x),
+            M + dr * (system.linearized_field(x) @ M),
+            state.travel_time + dr * system.time_rate(x),
+        )
+
+
+class RK2Stepper(Stepper):
+    """Explicit midpoint RK2: second order, not implicit midpoint."""
+    def advance(self, system: FlatBottomRaySystem, state: RayState, dr: float) -> RayState:
+        x, M = state.x, state.M
+        x_mid = x + dr / 2 * system.vector_field(x)
+        M_mid = M + dr / 2 * (system.linearized_field(x) @ M)
+        return RayState(
+            state.r + dr,
+            x + dr * system.vector_field(x_mid),
+            M + dr * (system.linearized_field(x_mid) @ M_mid),
+            state.travel_time + dr * system.time_rate(x_mid),
+        )
 class RK4Stepper(Stepper):
-    def advance(self, system, state, dr):
+    def advance(self, system: FlatBottomRaySystem, state: RayState, dr: float):
         def rhs(x, M):
             return (system.vector_field(x), system.linearized_field(x) @ M,
                     system.time_rate(x))

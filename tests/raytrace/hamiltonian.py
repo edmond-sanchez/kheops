@@ -17,8 +17,6 @@ def sample_states(ssp):
     return np.stack((z, p), axis=-1)
 
 
-
-
 def test_hamilton_equations_against_numerical_gradient():
     for ssp in (DownwardRefractingSSP(), MunkSSP()):
         system = FlatBottomRaySystem(FlatBottomEnvironment(ssp, bottom_depth=4500))

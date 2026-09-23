@@ -4,7 +4,7 @@ from kheops.environment import FlatBottomEnvironment
 
 
 class FlatBottomRaySystem:
-    def __init__(self, environment):
+    def __init__(self, environment: FlatBottomEnvironment):
         self.environment = environment
 
     def hamiltonian(self, x):
