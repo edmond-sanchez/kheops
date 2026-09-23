@@ -5,9 +5,11 @@ import numpy as np
 
 from kheops.environment import FlatBottomEnvironment
 from kheops.raytrace.hamiltonian import FlatBottomRaySystem
+from kheops.raytrace.raystate import RayState
 from kheops.raytrace.stepper import RK4Stepper
 
 
+@dataclass
 class RayEvent:
     ray_id: int
     kind: str
