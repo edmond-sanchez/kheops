@@ -36,6 +36,13 @@ class SSPCubicSpline(SoundSpeedProfile):
         return self.ssp(z, 2)
 
 
+""" 
+the three following examples are found in Porter & Bucker 
+"Gaussian beam tracing for computing ocean acoustic fields"
+doi: 10.1121/1.395269
+"""
+
+
 @dataclass(frozen=True)
 class DownwardRefractingSSP(SoundSpeedProfile):
     # Original parameters: depth in yards, speed in yards/s.
