@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
 import numpy as np
+from tqdm import tqdm
 
 from kheops.environment import FlatBottomEnvironment
 from kheops.raytrace.hamiltonian import FlatBottomRaySystem
@@ -70,6 +71,32 @@ class RayTraceResult:
     def spreading(self):
         """dz/d(theta0) at fixed initial depth; theta0 is in radians."""
         return self.M[..., 0, 1] * self.metadata['dpz_dangle']
+
+    def amplitude(self, reference_distance=1.0):
+        """Return pressure amplitude relative to spherical spreading at a reference distance.
+
+        The axisymmetric ray-tube Jacobian is proportional to ``r * M01``.
+        Its reference value is evaluated analytically for spherical propagation
+        along each launch direction. The source sample is assigned the reference
+        amplitude because geometrical ray theory is singular at zero range.
+        """
+        valid_distance = isinstance(reference_distance, (int, float, np.integer, np.floating)) \
+            and not isinstance(reference_distance, bool) \
+            and np.isfinite(reference_distance) and reference_distance > 0
+        if not valid_distance:
+            raise ValueError('reference_distance must be a positive finite number.')
+
+        reference_jacobian = reference_distance**2 / self.metadata['dpz_dangle']
+        ray_tube_jacobian = np.abs(self.r[:, None] * self.M[..., 0, 1])
+        with np.errstate(divide='ignore', invalid='ignore'):
+            amplitude = np.sqrt(reference_jacobian / ray_tube_jacobian)
+        amplitude[self.r == 0] = 1.0
+        return amplitude
+
+    def transmission_loss(self, reference_distance=1.0):
+        """Return transmission loss in dB relative to amplitude at the reference distance."""
+        with np.errstate(divide='ignore'):
+            return -20 * np.log10(self.amplitude(reference_distance))
 
     def to_xarray(self):
         import xarray as xr
@@ -169,7 +196,7 @@ class RayTracer:
         state = RayState(0.0, x, np.broadcast_to(np.eye(2), (len(z), 2, 2)).copy(), np.zeros(len(z)))
         samples, events = [state], []
         count = int(np.ceil(config.final_range/config.range_step))
-        for step in range(1, count + 1):
+        for step in tqdm(range(1, count + 1)):
             target = min(step*config.range_step, config.final_range)
             proposed = self.stepper.advance(self.system, state, target - state.r)
             for ray_id in range(len(z)):
