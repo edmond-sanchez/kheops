@@ -1,9 +1,8 @@
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.axes import Axes
 from matplotlib.collections import LineCollection
 from matplotlib.colors import Normalize
-import numpy as np
-from numpy.typing import NDArray
 
 from kheops.raytrace.raytrace import RayTraceResult
 
@@ -12,59 +11,52 @@ def plot_rays(
     result: RayTraceResult,
     ax: Axes | None = None,
     *,
-    amplitude: NDArray[np.floating] | None = None,
+    show_transmission_loss: bool = False,
     show_reflections: bool = False,
     show_caustics: bool = False,
     show_turning_points: bool = False,
     cmap: str = 'viridis',
     norm: Normalize | None = None,
     colorbar: bool = True,
-    amplitude_label: str = 'Amplitude',
     linewidth: float = 0.8,
+    n_max_rays: int = 50,
 ) -> Axes:
-    """Plot rays with depth increasing downward. Return ax; do not call show().
 
-    amplitude, when supplied, has shape (saved ranges, rays), like result.z.
-    Pass finite, real values from your amplitude model, or precomputed dB values
-    with a suitable amplitude_label. One colour scale is shared by all rays.
-    norm can be a Matplotlib Normalize or LogNorm instance.
+    ray_ids = result.ray_id
+    if len(ray_ids) > n_max_rays:
+        ray_ids = ray_ids[np.linspace(0, len(ray_ids) - 1, n_max_rays, dtype=int)]
 
-    Event positions are always included in the ray paths, even when their
-    markers are hidden. Amplitudes at those positions are linearly interpolated
-    from saved samples; discontinuities at reflections are not reconstructed.
-    """
-    if amplitude is not None:
-        amplitude = np.asarray(amplitude)
-        if amplitude.shape != result.z.shape:
-            raise ValueError('amplitude must have the same shape as result.z.')
-        if not np.isrealobj(amplitude) or not np.all(np.isfinite(amplitude)):
-            raise ValueError('amplitude must contain finite real values.')
+    transmission_loss = result.transmission_loss() if show_transmission_loss else None
+    if transmission_loss is not None:
+        finite_tl = transmission_loss[:, ray_ids]
+        finite_tl = finite_tl[np.isfinite(finite_tl)]
+        if not finite_tl.size:
+            raise ValueError('transmission loss has no finite values to plot.')
         if norm is None:
-            norm = Normalize(vmin=amplitude.min(), vmax=amplitude.max())
+            norm = Normalize(vmin=finite_tl.min(), vmax=finite_tl.max())
 
     if ax is None:
         _, ax = plt.subplots(layout='constrained')
 
     segments, colours = [], []
-    for ray_id in result.ray_id:
+    for ray_id in ray_ids:
         r, z = result.path_for(ray_id, include_events=True)
-        if amplitude is None:
+        if transmission_loss is None:
             ax.plot(r, z, color='black', linewidth=linewidth)
         else:
             points = np.column_stack((r, z))
             ray_segments = np.stack((points[:-1], points[1:]), axis=1)
-            values = np.interp(r, result.r, amplitude[:, ray_id])
-            # Colour each segment by the mean amplitude at its two ends.
+            values = np.interp(r, result.r, transmission_loss[:, ray_id])
             segments.extend(ray_segments)
             colours.extend((values[:-1] + values[1:]) / 2)
 
-    if amplitude is not None:
+    if transmission_loss is not None:
         rays = LineCollection(segments, cmap=cmap, norm=norm, linewidths=linewidth)
-        rays.set_array(np.asarray(colours))
+        rays.set_array(np.ma.masked_invalid(colours))
         ax.add_collection(rays)
         ax.autoscale_view()
         if colorbar:
-            ax.figure.colorbar(rays, ax=ax, label=amplitude_label)
+            ax.figure.colorbar(rays, ax=ax, label='Transmission loss (dB re 1 m)')
 
     event_styles = [
         ('surface', show_reflections, 'tab:blue', 'v', 'Surface reflection'),
